@@ -1,0 +1,78 @@
+"""
+Task 4 - Delivery Performance EDA (Python / pandas)
+Food Delivery Orders dataset - descriptive statistics, IQR outlier detection,
+and correlation analysis between Revenue, DeliveryTime, and Rating.
+
+Input: food_delivery_orders.csv (CSV export of the Orders table from the Excel workbook)
+"""
+
+import pandas as pd
+
+# ------------------------------------------------------------------
+# 1. Load data
+# ------------------------------------------------------------------
+df = pd.read_csv("food_delivery_orders.csv")
+df["OrderDate"] = pd.to_datetime(df["OrderDate"])
+
+# ------------------------------------------------------------------
+# 2. Descriptive statistics for DeliveryTime (replicates the Excel Stats Summary sheet)
+# ------------------------------------------------------------------
+print("=" * 60)
+print("DESCRIPTIVE STATISTICS - DeliveryTime (minutes)")
+print("=" * 60)
+desc = df["DeliveryTime"].describe()
+print(desc.to_string())
+print(f"Mode                  {df['DeliveryTime'].mode().iloc[0]}")
+print(f"Variance              {df['DeliveryTime'].var():.2f}")
+
+# ------------------------------------------------------------------
+# 3. Manual IQR calculation and outlier flagging
+# ------------------------------------------------------------------
+q1 = df["DeliveryTime"].quantile(0.25)
+q3 = df["DeliveryTime"].quantile(0.75)
+iqr = q3 - q1
+lower_bound = q1 - 1.5 * iqr
+upper_bound = q3 + 1.5 * iqr
+
+df["Outlier_Flag"] = df["DeliveryTime"].apply(
+    lambda x: "Yes" if (x < lower_bound or x > upper_bound) else "No"
+)
+
+print()
+print("=" * 60)
+print("IQR OUTLIER ANALYSIS")
+print("=" * 60)
+print(f"Q1 (25th percentile):  {q1:.2f}")
+print(f"Q3 (75th percentile):  {q3:.2f}")
+print(f"IQR:                   {iqr:.2f}")
+print(f"Lower bound:           {lower_bound:.2f}")
+print(f"Upper bound:           {upper_bound:.2f}")
+print(f"Outliers flagged:      {(df['Outlier_Flag'] == 'Yes').sum()} of {len(df)} rows")
+
+# ------------------------------------------------------------------
+# 4. Correlation matrix - Revenue, DeliveryTime, Rating
+# ------------------------------------------------------------------
+corr_matrix = df[["Revenue", "DeliveryTime", "Rating"]].corr()
+
+print()
+print("=" * 60)
+print("CORRELATION MATRIX (Revenue, DeliveryTime, Rating)")
+print("=" * 60)
+print(corr_matrix.round(3).to_string())
+
+# Business interpretation (inline comments as required by the task):
+# - Revenue vs DeliveryTime: a correlation near zero/weakly negative suggests order
+#   value has little to do with how long delivery takes - delays are not simply a
+#   byproduct of bigger, more complex orders.
+# - DeliveryTime vs Rating: a negative correlation here would mean longer deliveries
+#   are associated with lower customer ratings - i.e. delivery speed is a real driver
+#   of customer satisfaction and worth prioritising operationally.
+# - Revenue vs Rating: a weak/near-zero correlation would indicate customers don't
+#   rate high-value orders systematically higher or lower - satisfaction is driven by
+#   service quality (like delivery time), not order size.
+
+print()
+print("=" * 60)
+print("SAMPLE OF FLAGGED OUTLIER ROWS")
+print("=" * 60)
+print(df[df["Outlier_Flag"] == "Yes"][["OrderID", "Cuisine", "DeliveryTime", "Outlier_Flag"]].to_string(index=False))
